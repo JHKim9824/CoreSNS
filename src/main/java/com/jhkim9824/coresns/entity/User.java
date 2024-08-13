@@ -1,5 +1,6 @@
 package com.jhkim9824.coresns.entity;
 
+import com.jhkim9824.coresns.dto.UserResponseDto;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -85,8 +86,20 @@ public class User implements UserDetails {
     public boolean isEnabled() {
         return this.removedDate == null;
     }
+
+    public UserResponseDto toResponseDto() {
+        return new UserResponseDto(
+                this.id,
+                this.email,
+                this.nickname,
+                this.name,
+                this.phoneNumber,
+                this.gender,
+                this.birthdate,
+                this.introduce,
+                this.profileImage,
+                this.createdDate
+        );
+    }
 }
 
-enum Gender {
-    MALE, FEMALE, OTHER
-}
