@@ -72,4 +72,4 @@
 - MySQL
 
 ## ERD
-![msedge_hWBVRCtT6K](https://github.com/user-attachments/assets/774ce227-82db-4535-adef-15ac34b398a1)
+![CoreSNS ERD](https://github.com/user-attachments/assets/53c3fbf8-4ec6-4a6e-a79d-619dd71136ff)
