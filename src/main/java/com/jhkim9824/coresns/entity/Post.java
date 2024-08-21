@@ -3,11 +3,15 @@ package com.jhkim9824.coresns.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "Post")
+@EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
 public class Post {
@@ -21,16 +25,18 @@ public class Post {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "content", nullable = false, length = 3000)
+    @Column(name = "content", nullable = false, length = 300)
     private String content;
 
     @Column(name = "location", length = 100)
     private String location;
 
-    @Column(name = "created_date", nullable = false)
+    @CreatedDate
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdDate;
 
-    @Column(name = "updated_date")
+    @LastModifiedDate
+    @Column(nullable = false)
     private LocalDateTime updatedDate;
 
     @Column(name = "like_count")
@@ -42,13 +48,4 @@ public class Post {
     @Column(name = "main_image_url", length = 255)
     private String mainImageUrl;
 
-    @PrePersist
-    protected void onCreate() {
-        createdDate = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedDate = LocalDateTime.now();
-    }
 }

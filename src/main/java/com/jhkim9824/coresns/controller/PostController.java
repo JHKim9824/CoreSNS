@@ -2,11 +2,18 @@ package com.jhkim9824.coresns.controller;
 
 import com.jhkim9824.coresns.dto.PostDto;
 import com.jhkim9824.coresns.service.PostService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/posts")
@@ -16,10 +23,10 @@ public class PostController {
     private final PostService postService;
 
     @PostMapping
-    public ResponseEntity<PostDto> createPost(@RequestBody PostDto postDto,
+    public ResponseEntity<PostDto> createPost(@Valid @RequestBody PostDto postDto,
                                               @AuthenticationPrincipal UserDetails userDetails) {
         PostDto createdPost = postService.createPost(postDto, userDetails.getUsername());
-        return ResponseEntity.ok(createdPost);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdPost);
     }
 
     @GetMapping("/{postId}")
@@ -30,7 +37,7 @@ public class PostController {
 
     @PutMapping("/{postId}")
     public ResponseEntity<PostDto> updatePost(@PathVariable Long postId,
-                                              @RequestBody PostDto postDto,
+                                              @Valid @RequestBody PostDto postDto,
                                               @AuthenticationPrincipal UserDetails userDetails) {
         PostDto updatedPost = postService.updatePost(postId, postDto, userDetails.getUsername());
         return ResponseEntity.ok(updatedPost);
@@ -41,5 +48,17 @@ public class PostController {
                                            @AuthenticationPrincipal UserDetails userDetails) {
         postService.deletePost(postId, userDetails.getUsername());
         return ResponseEntity.noContent().build();
+    }
+
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public Map<String, String> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getAllErrors().forEach((error) -> {
+            String fieldName = ((FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            errors.put(fieldName, errorMessage);
+        });
+        return errors;
     }
 }
