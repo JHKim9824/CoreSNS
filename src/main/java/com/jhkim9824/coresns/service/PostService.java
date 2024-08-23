@@ -66,6 +66,16 @@ public class PostService {
         postRepository.delete(post);
     }
 
+    // 게시물 조회 시 댓글 수 업데이트
+
+    @Transactional
+    public void updateCommentCount(Long postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found"));
+        post.setCommentCount(post.getComments().size());
+        postRepository.save(post);
+    }
+
     private PostDto convertToDto(Post post) {
         return new PostDto(
                 post.getId(),
