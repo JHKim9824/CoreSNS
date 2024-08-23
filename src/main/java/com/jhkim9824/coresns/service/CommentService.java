@@ -55,12 +55,7 @@ public class CommentService {
         }
 
         Post post = comment.getPost();
-        post.setCommentCount(post.getCommentCount() - 1);
-        postRepository.save(post);
-
-        commentRepository.delete(comment);
-
-        //postService.updateCommentCount(comment.getPost().getId());
+        post.removeComment(comment);
     }
 
     public List<CommentDto> getCommentsByPostId(Long postId) {

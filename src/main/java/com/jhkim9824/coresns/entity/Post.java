@@ -55,4 +55,9 @@ public class Post {
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Comment> comments = new ArrayList<>();
 
+    public void removeComment(Comment comment) {
+        comments.remove(comment);
+        comment.setPost(null);
+        this.commentCount = this.commentCount - 1;
+    }
 }
