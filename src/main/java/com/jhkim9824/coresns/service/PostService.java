@@ -1,13 +1,19 @@
 package com.jhkim9824.coresns.service;
 
 import com.jhkim9824.coresns.dto.PostDto;
-import com.jhkim9824.coresns.entity.Post;
-import com.jhkim9824.coresns.entity.User;
-import com.jhkim9824.coresns.repository.PostRepository;
-import com.jhkim9824.coresns.repository.UserRepository;
+import com.jhkim9824.coresns.entity.*;
+import com.jhkim9824.coresns.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -15,6 +21,9 @@ public class PostService {
 
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final UserPostLikeRepository userPostLikeRepository;
+    private final HashtagRepository hashtagRepository;
+    private final PostHashtagRepository postHashtagRepository;
 
     @Transactional
     public PostDto createPost(PostDto postDto, String userEmail) {
@@ -28,6 +37,23 @@ public class PostService {
         post.setMainImageUrl(postDto.getMainImageUrl());
 
         Post savedPost = postRepository.save(post);
+
+        // 해시태그 처리
+        Set<String> hashtags = extractHashtags(postDto.getContent());
+        for (String tag : hashtags) {
+            Hashtag hashtag = hashtagRepository.findByHashtag(tag)
+                    .orElseGet(() -> {
+                        Hashtag newHashtag = new Hashtag();
+                        newHashtag.setHashtag(tag);
+                        return hashtagRepository.save(newHashtag);
+                    });
+
+            PostHashtag postHashtag = new PostHashtag();
+            postHashtag.setPost(savedPost);
+            postHashtag.setHashtag(hashtag);
+            postHashtagRepository.save(postHashtag);
+        }
+        
         return convertToDto(savedPost);
     }
 
@@ -74,6 +100,63 @@ public class PostService {
                 .orElseThrow(() -> new RuntimeException("Post not found"));
         post.setCommentCount(post.getComments().size());
         postRepository.save(post);
+    }
+
+    @Transactional
+    public void likePost(Long postId, String userEmail) {
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found"));
+
+        try {
+            UserPostLike like = new UserPostLike();
+            like.setUser(user);
+            like.setPost(post);
+            userPostLikeRepository.save(like);
+
+            post.setLikeCount(userPostLikeRepository.countByPost(post));
+            postRepository.save(post);
+        } catch (DataIntegrityViolationException e) {
+            // 유니크 제약 조건 위반 시 (이미 좋아요를 눌렀을 경우) 예외 처리
+            throw new RuntimeException("User already liked this post");
+        }
+    }
+
+    @Transactional
+    public void unlikePost(Long postId, String userEmail) {
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found"));
+
+        userPostLikeRepository.deleteByUserAndPost(user, post);
+        post.setLikeCount(userPostLikeRepository.countByPost(post));
+        postRepository.save(post);
+    }
+
+    public boolean hasUserLikedPost(Long postId, String userEmail) {
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found"));
+
+        return userPostLikeRepository.existsByUserAndPost(user, post);
+    }
+
+    public List<PostDto> getPostsByHashtag(String hashtag) {
+        List<Post> posts = postHashtagRepository.findPostsByHashtag(hashtag);
+        return posts.stream().map(this::convertToDto).collect(Collectors.toList());
+    }
+
+    private Set<String> extractHashtags(String content) {
+        Set<String> hashtags = new HashSet<>();
+        Pattern pattern = Pattern.compile("#(\\w+)");
+        Matcher matcher = pattern.matcher(content);
+        while (matcher.find()) {
+            hashtags.add(matcher.group(1));
+        }
+        return hashtags;
     }
 
     private PostDto convertToDto(Post post) {
