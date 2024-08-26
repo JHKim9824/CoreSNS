@@ -5,14 +5,17 @@ import com.jhkim9824.coresns.service.PostService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.FieldError;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -50,6 +53,45 @@ public class PostController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/{postId}/like")
+    public ResponseEntity<Void> likePost(@PathVariable Long postId,
+                                         @AuthenticationPrincipal UserDetails userDetails) {
+        postService.likePost(postId, userDetails.getUsername());
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{postId}/like")
+    public ResponseEntity<Void> unlikePost(@PathVariable Long postId,
+                                           @AuthenticationPrincipal UserDetails userDetails) {
+        postService.unlikePost(postId, userDetails.getUsername());
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{postId}/like")
+    public ResponseEntity<Boolean> hasUserLikedPost(@PathVariable Long postId,
+                                                    @AuthenticationPrincipal UserDetails userDetails) {
+        boolean hasLiked = postService.hasUserLikedPost(postId, userDetails.getUsername());
+        return ResponseEntity.ok(hasLiked);
+    }
+
+
+
+    @GetMapping("/hashtag/{hashtag}")
+    public ResponseEntity<?> getPostsByHashtag(@PathVariable String hashtag) {
+        if (!isValidHashtag(hashtag)) {
+            ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
+                    "The hashtag should only contain alphanumeric characters and underscores.");
+            problemDetail.setTitle("Invalid hashtag format");
+            return ResponseEntity.badRequest().body(problemDetail);
+        }
+        List<PostDto> posts = postService.getPostsByHashtag(hashtag);
+        return ResponseEntity.ok(posts);
+    }
+
+    private boolean isValidHashtag(String hashtag) {
+        return hashtag.matches("^[a-zA-Z0-9_-]+$");
+    }
+
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public Map<String, String> handleValidationExceptions(MethodArgumentNotValidException ex) {
@@ -61,4 +103,5 @@ public class PostController {
         });
         return errors;
     }
+
 }

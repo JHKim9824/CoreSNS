@@ -44,6 +44,14 @@ public class Post {
     @Column(name = "like_count")
     private Integer likeCount = 0;
 
+    public void incrementLikeCount() {
+        this.likeCount++;
+    }
+
+    public void decrementLikeCount() {
+        this.likeCount = Math.max(0, this.likeCount - 1);
+    }
+
     @Column(name = "comment_count")
     private Integer commentCount = 0;
 
