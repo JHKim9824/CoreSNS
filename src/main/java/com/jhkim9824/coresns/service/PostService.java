@@ -109,18 +109,18 @@ public class PostService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new RuntimeException("Post not found"));
 
-        try {
-            UserPostLike like = new UserPostLike();
-            like.setUser(user);
-            like.setPost(post);
-            userPostLikeRepository.save(like);
-
-            post.setLikeCount(userPostLikeRepository.countByPost(post));
-            postRepository.save(post);
-        } catch (DataIntegrityViolationException e) {
-            // 유니크 제약 조건 위반 시 (이미 좋아요를 눌렀을 경우) 예외 처리
-            throw new RuntimeException("User already liked this post");
+        if (userPostLikeRepository.existsByUserAndPost(user, post)) {
+            throw new RuntimeException("User Already Liked Post");
         }
+
+        UserPostLike like = UserPostLike.builder()
+                .user(user)
+                .post(post)
+                .build();
+
+        userPostLikeRepository.save(like);
+
+        post.incrementLikeCount();
     }
 
     @Transactional
@@ -130,9 +130,12 @@ public class PostService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new RuntimeException("Post not found"));
 
-        userPostLikeRepository.deleteByUserAndPost(user, post);
-        post.setLikeCount(userPostLikeRepository.countByPost(post));
-        postRepository.save(post);
+        UserPostLike like = userPostLikeRepository.findByUserAndPost(user, post)
+                .orElseThrow(() -> new RuntimeException("UserPostLike not found"));
+
+        userPostLikeRepository.delete(like);
+
+        post.decrementLikeCount();
     }
 
     public boolean hasUserLikedPost(Long postId, String userEmail) {

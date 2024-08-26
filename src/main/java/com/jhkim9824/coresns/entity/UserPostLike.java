@@ -1,8 +1,7 @@
 package com.jhkim9824.coresns.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -13,7 +12,9 @@ import java.time.LocalDateTime;
         uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "post_id"}))
 @EntityListeners(AuditingEntityListener.class)
 @Getter
-@Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Builder
 
 public class UserPostLike {
 
